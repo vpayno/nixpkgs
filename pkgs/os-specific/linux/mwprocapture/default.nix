@@ -15,6 +15,7 @@ let
     alsa-lib
   ];
 
+  KDIR = "${kernel.dev}/lib/modules/${kernel.modDirVersion}";
 in
 stdenv.mkDerivation rec {
   pname = "mwprocapture";
@@ -26,12 +27,9 @@ stdenv.mkDerivation rec {
     sha256 = "sha256-qdE4+ziaf8BZnJxoEQKYS2PFaCXcjv9923ayB/bDm3w=";
   };
 
-  nativeBuildInputs = kernel.moduleBuildDependencies;
+  sourceRoot = "ProCaptureForLinux_${subVersion}/src";
 
-  preConfigure = ''
-    cd ./src
-    export INSTALL_MOD_PATH="$out"
-  '';
+  nativeBuildInputs = kernel.moduleBuildDependencies;
 
   hardeningDisable = [
     "pic"
@@ -39,10 +37,19 @@ stdenv.mkDerivation rec {
   ];
 
   makeFlags = [
-    "KERNELDIR=${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
+    "KERNELDIR=${KDIR}/build"
+    "INSTALL_MOD_PATH=${placeholder "out"}"
   ];
 
   env.NIX_CFLAGS_COMPILE = "-Wno-error=implicit-fallthrough";
+
+  installTargets = [ "modules_install" ];
+
+  installFlags = [
+    "-C"
+    "${KDIR}/build"
+    "M=$(PWD)"
+  ];
 
   postInstall = ''
     cd ../
